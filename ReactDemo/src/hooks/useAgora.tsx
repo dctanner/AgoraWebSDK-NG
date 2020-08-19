@@ -31,9 +31,16 @@ export default function useAgora(client: IAgoraRTCClient | undefined)
     
     await client.join(appid, channel, token || null);
     await client.publish([cameraTrack]);
+
+    client.enableDualStream().then(() => {
+      console.log("Enable Dual stream success!");
+    }).catch(err => {
+      console.log(err);
+    });
+
     (window as any).client = client;
     (window as any).videoTrack = cameraTrack;
-
+    
     setJoinState(true);
   }
 
