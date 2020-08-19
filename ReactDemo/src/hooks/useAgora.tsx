@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import AgoraRTC, {
-  IAgoraRTCClient, IAgoraRTCRemoteUser, MicrophoneAudioTrackInitConfig, CameraVideoTrackInitConfig, IMicrophoneAudioTrack, ICameraVideoTrack, ILocalVideoTrack, ILocalAudioTrack } from 'agora-rtc-sdk-ng';
+  IAgoraRTCClient, IAgoraRTCRemoteUser, MicrophoneAudioTrackInitConfig, CameraVideoTrackInitConfig, ICameraVideoTrack, ILocalVideoTrack } from 'agora-rtc-sdk-ng';
 
 export default function useAgora(client: IAgoraRTCClient | undefined)
   :
    {
-      localAudioTrack: ILocalAudioTrack | undefined,
       localVideoTrack: ILocalVideoTrack | undefined,
       joinState: boolean,
       leave: Function,
@@ -14,27 +13,24 @@ export default function useAgora(client: IAgoraRTCClient | undefined)
     }
     {
   const [localVideoTrack, setLocalVideoTrack] = useState<ILocalVideoTrack | undefined>(undefined);
-  const [localAudioTrack, setLocalAudioTrack] = useState<ILocalAudioTrack | undefined>(undefined);
 
   const [joinState, setJoinState] = useState(false);
 
   const [remoteUsers, setRemoteUsers] = useState<IAgoraRTCRemoteUser[]>([]);
 
   async function createLocalTracks(audioConfig?: MicrophoneAudioTrackInitConfig, videoConfig?: CameraVideoTrackInitConfig)
-  : Promise<[IMicrophoneAudioTrack, ICameraVideoTrack]> {
+  : Promise<[ICameraVideoTrack]> {
     const [microphoneTrack, cameraTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(audioConfig, videoConfig);
-    setLocalAudioTrack(microphoneTrack);
     setLocalVideoTrack(cameraTrack);
-    return [microphoneTrack, cameraTrack];
+    return [cameraTrack];
   }
 
   async function join(appid: string, channel: string, token?: string, uid?: string | number | null) {
     if (!client) return;
-    const [microphoneTrack, cameraTrack] = await createLocalTracks();
+    const [cameraTrack] = await createLocalTracks();
     
     await client.join(appid, channel, token || null);
-    await client.publish([microphoneTrack, cameraTrack]);
-
+    await client.publish([cameraTrack]);
     (window as any).client = client;
     (window as any).videoTrack = cameraTrack;
 
@@ -42,10 +38,6 @@ export default function useAgora(client: IAgoraRTCClient | undefined)
   }
 
   async function leave() {
-    if (localAudioTrack) {
-      localAudioTrack.stop();
-      localAudioTrack.close();
-    }
     if (localVideoTrack) {
       localVideoTrack.stop();
       localVideoTrack.close();
@@ -87,7 +79,6 @@ export default function useAgora(client: IAgoraRTCClient | undefined)
   }, [client]);
 
   return {
-    localAudioTrack,
     localVideoTrack,
     joinState,
     leave,
